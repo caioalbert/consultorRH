@@ -1,0 +1,9 @@
+nome,cpf,cargo,filial,setor,data_admissao,status,risco
+Ana Lima,123.456.789-00,Analista RH,São Paulo,RH,2020-03-15,Ativo,Normal
+Carlos Souza,234.567.890-11,Gerente TI,Rio de Janeiro,TI,2019-07-22,Ativo,Crítico
+Fernanda Costa,345.678.901-22,Assistente Adm,Curitiba,Administrativo,2021-01-10,Ativo,Normal
+João Silva,456.789.012-33,Técnico,São Paulo,Operações,2018-05-18,Ativo,Alerta
+Mariana Santos,567.890.123-44,Coordenadora,Belo Horizonte,Comercial,2020-11-03,Férias,Normal
+Pedro Alves,678.901.234-55,Supervisor,Fortaleza,Logística,2017-09-25,Ativo,Crítico
+Juliana Ferreira,789.012.345-66,Especialista,São Paulo,Jurídico,2022-02-14,Ativo,Normal
+Roberto Nunes,890.123.456-77,Consultor,Rio de Janeiro,Financeiro,2019-12-08,Ativo,Alerta
