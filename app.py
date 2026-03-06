@@ -4,6 +4,7 @@ Aplicação principal usando Streamlit
 """
 import streamlit as st
 import pandas as pd
+import altair as alt
 import os
 from dotenv import load_dotenv
 from database import init_db, load_from_db, save_to_db
@@ -76,13 +77,22 @@ st.markdown("""
     [data-testid="stVegaLiteChart"], [data-testid="stArrowVegaLiteChart"] {
         background-color: #1a2235 !important;
         border-radius: 12px;
-        padding: 1rem;
+        padding: 0.5rem;
         border: 1px solid rgba(255,255,255,0.06);
+        box-sizing: border-box;
+        overflow: hidden !important;
+        max-width: 100% !important;
+    }
+
+    [data-testid="stVegaLiteChart"] > div, [data-testid="stArrowVegaLiteChart"] > div {
+        max-width: 100% !important;
+        overflow: hidden !important;
     }
     
     /* Canvas dos gráficos */
     canvas {
         background-color: transparent !important;
+        max-width: 100% !important;
     }
     
     /* Tabelas */
@@ -150,6 +160,50 @@ def load_data(tipo):
 def save_data(df, tipo):
     """Salva dados no banco de dados"""
     save_to_db(df, tipo)
+
+def render_bar_chart(data, x_label, y_label, height=260):
+    """Renderiza gráfico de barras estático sem zoom por scroll."""
+    if isinstance(data, pd.Series):
+        chart_df = data.reset_index()
+        chart_df.columns = [x_label, y_label]
+    elif isinstance(data, pd.DataFrame) and data.shape[1] >= 2:
+        chart_df = data.iloc[:, :2].copy()
+        chart_df.columns = [x_label, y_label]
+    else:
+        st.info("Sem dados para exibir")
+        return
+
+    chart_df = chart_df.dropna(subset=[x_label, y_label]).copy()
+    if chart_df.empty:
+        st.info("Sem dados para exibir")
+        return
+
+    chart_df[y_label] = pd.to_numeric(chart_df[y_label], errors='coerce').fillna(0)
+
+    chart = (
+        alt.Chart(chart_df)
+        .mark_bar(color="#60a5fa", cornerRadiusTopLeft=4, cornerRadiusTopRight=4)
+        .encode(
+            x=alt.X(
+                f"{x_label}:N",
+                sort="-y",
+                axis=alt.Axis(title=None, labelAngle=-20, labelLimit=140)
+            ),
+            y=alt.Y(
+                f"{y_label}:Q",
+                axis=alt.Axis(title=None, grid=True, gridColor="rgba(255,255,255,0.08)")
+            ),
+            tooltip=[
+                alt.Tooltip(f"{x_label}:N", title=x_label),
+                alt.Tooltip(f"{y_label}:Q", title=y_label, format=",.0f")
+            ]
+        )
+        .properties(height=height)
+        .configure_view(strokeOpacity=0)
+        .configure_axis(labelColor="#8b95a8")
+    )
+
+    st.altair_chart(chart, use_container_width=True, theme=None)
 
 def main():
     """Função principal"""
@@ -263,7 +317,7 @@ def render_dashboard():
         if not esocial.empty and 'evento' in esocial.columns and 'passivo' in esocial.columns:
             chart_data = esocial.copy()
             chart_data['valor'] = chart_data['passivo'].apply(lambda x: float(str(x).replace('R$', '').replace('.', '').replace(',', '.').strip()) if pd.notna(x) else 0)
-            st.bar_chart(chart_data.set_index('evento')['valor'])
+            render_bar_chart(chart_data.set_index('evento')['valor'], "Evento", "Passivo")
         else:
             st.info("Importe dados eSocial")
     
@@ -274,7 +328,7 @@ def render_dashboard():
                 'Tipo': ['Férias Vencidas', 'Exames Atrasados'],
                 'Quantidade': [feriasVenc, examesAtr]
             })
-            st.bar_chart(alert_data.set_index('Tipo'))
+            render_bar_chart(alert_data.set_index('Tipo')['Quantidade'], "Tipo", "Quantidade")
         else:
             st.success("✅ Sem alertas críticos")
     
@@ -287,7 +341,7 @@ def render_dashboard():
         st.markdown("### Colaboradores por Filial")
         if not colaboradores.empty and 'filial' in colaboradores.columns:
             filial_count = colaboradores['filial'].value_counts()
-            st.bar_chart(filial_count)
+            render_bar_chart(filial_count, "Filial", "Colaboradores")
         else:
             st.info("Importe colaboradores")
     
@@ -295,7 +349,7 @@ def render_dashboard():
         st.markdown("### Distribuição de Riscos")
         if not colaboradores.empty and 'risco' in colaboradores.columns:
             risco_count = colaboradores['risco'].value_counts()
-            st.bar_chart(risco_count)
+            render_bar_chart(risco_count, "Risco", "Quantidade")
         else:
             st.info("Importe colaboradores")
     
@@ -303,7 +357,7 @@ def render_dashboard():
         st.markdown("### Status de Exames")
         if not exames.empty and 'status' in exames.columns:
             status_count = exames['status'].value_counts()
-            st.bar_chart(status_count)
+            render_bar_chart(status_count, "Status", "Quantidade")
         else:
             st.info("Importe exames")
     
@@ -359,12 +413,12 @@ def render_colaboradores():
         with col1:
             st.markdown("### Por Filial")
             if 'filial' in df.columns:
-                st.bar_chart(df['filial'].value_counts())
+                render_bar_chart(df['filial'].value_counts(), "Filial", "Quantidade")
         
         with col2:
             st.markdown("### Por Risco")
             if 'risco' in df.columns:
-                st.bar_chart(df['risco'].value_counts())
+                render_bar_chart(df['risco'].value_counts(), "Risco", "Quantidade")
         
         st.markdown("---")
         
@@ -406,12 +460,12 @@ def render_ferias():
         with col1:
             st.markdown("### Por Status")
             if 'status' in df.columns:
-                st.bar_chart(df['status'].value_counts())
+                render_bar_chart(df['status'].value_counts(), "Status", "Quantidade")
         
         with col2:
             st.markdown("### Por Filial")
             if 'filial' in df.columns:
-                st.bar_chart(df['filial'].value_counts())
+                render_bar_chart(df['filial'].value_counts(), "Filial", "Quantidade")
         
         st.markdown("---")
         
@@ -453,12 +507,12 @@ def render_exames():
         with col1:
             st.markdown("### Por Status")
             if 'status' in df.columns:
-                st.bar_chart(df['status'].value_counts())
+                render_bar_chart(df['status'].value_counts(), "Status", "Quantidade")
         
         with col2:
             st.markdown("### Por Tipo de Exame")
             if 'tipo_exame' in df.columns:
-                st.bar_chart(df['tipo_exame'].value_counts())
+                render_bar_chart(df['tipo_exame'].value_counts(), "Tipo de Exame", "Quantidade")
         
         st.markdown("---")
         
@@ -503,12 +557,12 @@ def render_esocial():
             if 'evento' in df.columns and 'passivo' in df.columns:
                 chart_data = df.copy()
                 chart_data['valor'] = chart_data['passivo'].apply(lambda x: float(str(x).replace('R$', '').replace('.', '').replace(',', '.').strip()) if pd.notna(x) else 0)
-                st.bar_chart(chart_data.set_index('evento')['valor'])
+                render_bar_chart(chart_data.set_index('evento')['valor'], "Evento", "Passivo")
         
         with col2:
             st.markdown("### Por Criticidade")
             if 'criticidade' in df.columns:
-                st.bar_chart(df['criticidade'].value_counts())
+                render_bar_chart(df['criticidade'].value_counts(), "Criticidade", "Quantidade")
         
         st.markdown("---")
         
