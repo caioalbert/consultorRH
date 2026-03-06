@@ -1,0 +1,8 @@
+evento,descricao,pendencias,passivo,criticidade
+S-1200,Remuneração do Trabalhador,87,R$ 157719,Crítico
+S-1210,Pagamentos de Rendimentos,54,R$ 98400,Crítico
+S-2210,Comunicação de Acidente,12,R$ 24000,Alerta
+S-2299,Desligamento do Trabalhador,9,R$ 18500,Alerta
+S-2230,Afastamento Temporário,31,R$ 62000,Crítico
+S-2206,Alteração de Contrato,15,R$ 15000,Atenção
+S-2220,Monitoramento Saúde do Trabalhador,500,R$ 651000,Crítico

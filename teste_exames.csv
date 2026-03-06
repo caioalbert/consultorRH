@@ -1,0 +1,10 @@
+nome,filial,tipo_exame,ultimo_exame,vencimento,dias_atraso,passivo,status
+Lucas Araújo,Porto Alegre,Admissional,2022-08-15,2023-08-15,0,R$ 0,Em Dia
+Débora Fonseca,Salvador,Periódico,2022-04-20,2023-04-20,280,R$ 1400,Crítico
+Rodrigo Pinto,Brasília,Periódico,2023-11-10,2024-11-10,0,R$ 0,Em Dia
+Vanessa Lopes,Recife,Periódico,2023-02-28,2024-02-28,120,R$ 900,Atrasado
+Bruno Dias,Goiânia,Periódico,2022-09-12,2023-09-12,180,R$ 1100,Atrasado
+Patrícia Melo,Vitória,Periódico,2023-07-18,2024-07-18,0,R$ 0,Em Dia
+Thiago Barbosa,Florianópolis,Admissional,2022-03-22,2023-03-22,0,R$ 0,Em Dia
+Renata Castro,Campinas,Periódico,2022-10-30,2023-10-30,450,R$ 2200,Crítico
+Eduardo Vieira,São Paulo,Periódico,2021-05-15,2022-05-15,680,R$ 3500,Crítico

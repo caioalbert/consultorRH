@@ -1,0 +1,17 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: devops-devopshub-web-service
+  labels:
+    app: devops-devopshub-web
+    app-type: web
+    app-group: "DevOps"
+spec:
+  type: ClusterIP
+  ports:
+    - port: 80
+      targetPort: 8501
+      protocol: TCP
+      name: http
+  selector:
+    app: devops-devopshub-web

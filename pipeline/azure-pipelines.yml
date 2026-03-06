@@ -1,0 +1,563 @@
+trigger:
+- none
+
+pool:
+  name: Self-hostedARM64v8
+  #vmImage: ubuntu 24.04
+variables:
+  # --- Variáveis Globais ---
+  registry: '676949161726.dkr.ecr.sa-east-1.amazonaws.com'
+  image: 'devops-devopshub-web'
+  image_version: '$(Build.BuildId)'
+  
+  dockerfile: 'pipeline/Dockerfile'
+  
+  eks_cluster: 'EKS-PROD-01'
+  sandbox_namespace: 'devops-sbx'
+  production_namespace: 'devops'
+  
+  deployment_name: 'devops-devopshub-web'
+  
+  # --- Variáveis de Controle de Rollback (Manual) ---
+  MANUAL_ROLLBACK_SANDBOX: 'false'
+  MANUAL_ROLLBACK_PRODUCTION: 'false'
+
+stages:
+# -------------------------
+# STAGE 1 - BUILD & PUSH (Parallel Jobs)
+# -------------------------
+- stage: Build
+  displayName: 'Build and Push Images'
+  jobs:
+    # ===== JOB 1: Build Sandbox =====
+    - job: BuildSandbox
+      displayName: 'Build SBX Image'
+      steps:
+        - checkout: self
+          fetchDepth: 0
+          persistCredentials: true
+
+        - task: DownloadSecureFile@1
+          name: envFile
+          displayName: 'Download devopshub.env file from Secure Files'
+          inputs:
+            secureFile: 'devopshub.env'
+            retryCount: '3'
+
+        - script: |
+            echo "=== Preparing environment file ==="
+            # Remove existing .env files from repository
+            rm -f .env .env.example
+            echo "✅ Removed .env.example from repository"
+            
+            # Copy and rename devopshub.env to .env
+            cp $(envFile.secureFilePath) .env
+            echo "✅ devopshub.env copied and renamed to .env"
+            
+            # Verify the file exists and show first few lines (without sensitive data)
+            if [ -f ".env" ]; then
+              echo "✅ .env file created successfully"
+              echo "File size: $(wc -l < .env) lines"
+            else
+              echo "❌ .env file not found!"
+              exit 1
+            fi
+            
+        - script: |
+            set -e
+            echo "=== Cleanup Docker Storage (SBX) ==="
+            
+            # Cleanup Docker only (safer)
+            echo "Cleaning Docker system..."
+            docker system prune -af --volumes || true
+            docker builder prune -af || true
+            docker image prune -af || true
+            
+            # Show disk space
+            echo "Available disk space:"
+            df -h /
+          displayName: 'Cleanup Docker Storage'
+          continueOnError: true
+
+        - script: |
+            set -e
+            echo "=== Installing Python dependencies (SBX) ==="
+            
+            # Retry logic for apt lock conflicts
+            for i in {1..3}; do
+              if sudo apt update -qq && sudo apt install -y python3-venv python3-pip python3-dev; then
+                break
+              else
+                echo "Attempt $i failed, waiting 10s before retry..."
+                sleep 10
+              fi
+            done
+            
+            echo "=== Setting up Python environment ==="
+            python3 --version
+            
+            echo "=== Creating virtual environment ==="
+            python3 -m venv venv
+            
+            echo "=== Activating virtual environment ==="
+            source venv/bin/activate
+            
+            echo "=== Verifying virtual environment ==="
+            which python
+            which pip
+            python --version
+            
+            echo "=== Upgrading pip ==="
+            python -m pip install --upgrade pip
+            
+            echo "=== Installing dependencies ==="
+            if [ ! -f "requirements.txt" ]; then
+              echo "❌ requirements.txt não existe — abortando"
+              exit 1
+            fi
+            python -m pip install -r requirements.txt
+            
+            echo "=== Installing test dependencies ==="
+            python -m pip install pylint flake8 pytest
+            
+            echo "=== Running tests ==="
+            if [ -d "tests" ]; then
+              python -m pytest -q tests/ || exit 1
+            else
+              echo "⚠ tests/ not found — running syntax check"
+              find . -name "*.py" -not -path "./venv/*" -print0 | xargs -0 -n1 python -m py_compile || true
+            fi
+          displayName: 'Setup Python and Run Tests'
+
+        - task: AWSShellScript@1
+          displayName: 'Build and Push SBX Image to ECR'
+          inputs:
+            awsCredentials: 'AWS.EKS'
+            regionName: 'sa-east-1'
+            scriptType: 'inline'
+            inlineScript: |
+              set -e
+              
+              echo "=========================================="
+              echo "Logging into ECR"
+              echo "=========================================="
+              aws ecr get-login-password --region sa-east-1 | docker login --username AWS --password-stdin $(registry)
+              
+              # Build SBX image with default settings.py (CSV mode)
+              echo "=========================================="
+              echo "Building SBX image (default config)"
+              echo "=========================================="
+              docker buildx build --platform=linux/arm64 -t $(image):sbx -f $(dockerfile) --load .
+              
+              # Tag and push SBX image
+              echo "=========================================="
+              echo "Tagging and pushing SBX image"
+              echo "=========================================="
+              if [ "$(Build.SourceBranchName)" = "main" ]; then
+                SBX_TAG="$(registry)/$(image):sbx-main-$(image_version)"
+              else
+                SBX_TAG="$(registry)/$(image):sbx-$(image_version)"
+              fi
+              docker tag $(image):sbx $SBX_TAG
+              docker push $SBX_TAG
+              echo "✓ SBX Image pushed: $SBX_TAG"
+              echo "##vso[task.setvariable variable=IMAGE_SBX_TAG;isOutput=true]$SBX_TAG"
+              
+              # Cleanup
+              docker system prune -f
+          name: buildSbxImage
+
+        - script: |
+            echo "=========================================="
+            echo "SBX Build Summary"
+            echo "=========================================="
+            echo "SBX Image: $(buildSbxImage.IMAGE_SBX_TAG)"
+          displayName: 'Summary: SBX Image Built'
+
+    # ===== JOB 2: Build Production =====
+    - job: BuildProduction
+      displayName: 'Build PROD Image'
+      steps:
+        - checkout: self
+          fetchDepth: 0
+          persistCredentials: true
+
+        - script: |
+            set -e
+            echo "=== Cleanup Docker Storage (PROD) ==="
+            
+            # Cleanup Docker only (safer)
+            echo "Cleaning Docker system..."
+            docker system prune -af --volumes || true
+            docker builder prune -af || true
+            docker image prune -af || true
+            
+            # Show disk space
+            echo "Available disk space:"
+            df -h /
+          displayName: 'Cleanup Docker Storage'
+          continueOnError: true
+
+        - script: |
+            set -e
+            echo "=== Installing Python dependencies (PROD) ==="
+            
+            # Retry logic for apt lock conflicts  
+            for i in {1..3}; do
+              if sudo apt update -qq && sudo apt install -y python3-venv python3-pip python3-dev; then
+                break
+              else
+                echo "Attempt $i failed, waiting 15s before retry..."
+                sleep 15
+              fi
+            done
+            
+            echo "=== Setting up Python environment ==="
+            python3 --version
+            
+            echo "=== Creating virtual environment ==="
+            python3 -m venv venv
+            
+            echo "=== Activating virtual environment ==="
+            source venv/bin/activate
+            
+            echo "=== Verifying virtual environment ==="
+            which python
+            which pip
+            python --version
+            
+            echo "=== Upgrading pip ==="
+            python -m pip install --upgrade pip
+            
+            echo "=== Installing dependencies ==="
+            if [ ! -f "requirements.txt" ]; then
+              echo "❌ requirements.txt não existe — abortando"
+              exit 1
+            fi
+            python -m pip install -r requirements.txt
+            
+            echo "=== Installing test dependencies ==="
+            python -m pip install pylint flake8 pytest
+            
+            echo "=== Running tests ==="
+            if [ -d "tests" ]; then
+              python -m pytest -q tests/ || exit 1
+            else
+              echo "⚠ tests/ not found — running syntax check"
+              find . -name "*.py" -not -path "./venv/*" -print0 | xargs -0 -n1 python -m py_compile || true
+            fi
+          displayName: 'Setup Python and Run Tests'
+
+        - task: DownloadSecureFile@1
+          displayName: 'Download Environment Variables'
+          inputs:
+            secureFile: 'devopshub.env'
+
+        - script: |
+            echo "=========================================="
+            echo "Preparing Environment Variables for PROD"
+            echo "=========================================="
+            SOURCE_FILE="$(Agent.TempDirectory)/devopshub.env"
+            TARGET_FILE=".env"
+            
+            if [ ! -f "$SOURCE_FILE" ]; then
+              echo "⚠ devopshub.env not found in Secure Files"
+              echo "PROD image will use default environment variables"
+            else
+              echo "✓ devopshub.env found in Secure Files"
+              # Remove any existing .env files from repository
+              rm -f .env .env.example
+              echo "✓ Removed .env.example from repository"
+              
+              # Copy and rename devopshub.env to .env
+              cp "$SOURCE_FILE" "$TARGET_FILE"
+              echo "✓ devopshub.env copied and renamed to .env for Docker build"
+              
+              echo "Variables found in .env:"
+              grep -E '^[A-Z_].*=' "$TARGET_FILE" | wc -l
+              echo "Environment file ready for container"
+            fi
+          displayName: 'Copy Environment Variables to Workspace'
+          continueOnError: true
+
+        - task: AWSShellScript@1
+          displayName: 'Build and Push PROD Image to ECR'
+          inputs:
+            awsCredentials: 'AWS.EKS'
+            regionName: 'sa-east-1'
+            scriptType: 'inline'
+            inlineScript: |
+              set -e
+              
+              echo "=========================================="
+              echo "Logging into ECR"
+              echo "=========================================="
+              aws ecr get-login-password --region sa-east-1 | docker login --username AWS --password-stdin $(registry)
+              
+              # Build PROD image (simple build)
+              echo "=========================================="
+              echo "Building PROD image"
+              echo "=========================================="
+              
+              docker buildx build --platform=linux/arm64 -t $(image):prod -f $(dockerfile) --load .
+              
+              # Tag and push PROD image
+              echo "=========================================="
+              echo "Tagging and pushing PROD image"
+              echo "=========================================="
+              if [ "$(Build.SourceBranchName)" = "main" ]; then
+                PROD_TAG="$(registry)/$(image):prod-main-$(image_version)"
+              else
+                PROD_TAG="$(registry)/$(image):prod-$(image_version)"
+              fi
+              docker tag $(image):prod $PROD_TAG
+              docker push $PROD_TAG
+              echo "✓ PROD Image pushed: $PROD_TAG"
+              echo "##vso[task.setvariable variable=IMAGE_PROD_TAG;isOutput=true]$PROD_TAG"
+              
+              # Test PROD image quickly
+              echo "=========================================="
+              echo "Testing PROD image"
+              echo "=========================================="
+              docker run --rm $PROD_TAG echo "✓ PROD image built successfully"
+              
+              # Cleanup
+              rm -f config/settings.py.prod
+              docker system prune -f
+          name: buildProdImage
+
+        - script: |
+            echo "=========================================="
+            echo "PROD Build Summary"
+            echo "=========================================="
+            echo "PROD Image: $(buildProdImage.IMAGE_PROD_TAG)"
+          displayName: 'Summary: PROD Image Built'
+# -------------------------
+# STAGE 2 - DEPLOY SANDBOX
+# -------------------------
+- stage: Deploy_Sandbox
+  displayName: 'Deploy Sandbox'
+  dependsOn: Build
+  variables:
+    IMAGE_SBX_TAG: $[ stageDependencies.Build.BuildSandbox.outputs['buildSbxImage.IMAGE_SBX_TAG'] ]
+  jobs:
+    - job: UpdateAndDeploySandbox
+      displayName: 'Update Rollout and Deploy to Sandbox'
+      steps:
+        - checkout: self
+
+        - task: AWSShellScript@1
+          displayName: 'Deploy SBX Image to Sandbox'
+          inputs:
+            awsCredentials: 'AWS.EKS'
+            regionName: 'sa-east-1'
+            scriptType: 'inline'
+            inlineScript: |
+              set -e
+              
+              echo "=========================================="
+              echo "Deploying Sandbox Environment"
+              echo "=========================================="
+              echo "Using image: $(IMAGE_SBX_TAG)"
+              
+              aws eks update-kubeconfig --region sa-east-1 --name $(eks_cluster)
+
+              # Install kustomize if not available
+              if ! command -v kustomize >/dev/null 2>&1; then
+                echo "Installing kustomize..."
+                curl -sLo /tmp/kustomize.tar.gz "https://github.com/kubernetes-sigs/kustomize/releases/download/kustomize/v5.1.1/kustomize_v5.1.1_linux_amd64.tar.gz"
+                tar -xzf /tmp/kustomize.tar.gz -C /tmp
+                mv /tmp/kustomize /usr/local/bin/kustomize
+              fi
+
+              # Copy rollout files to temp and update image
+              TEMP_DIR="/tmp/rollout-sandbox-$(Build.BuildId)"
+              rm -rf "$TEMP_DIR"
+              mkdir -p "$TEMP_DIR"
+              cp -r pipeline/rollouts/devops-sbx/* "$TEMP_DIR/"
+              
+              # Update image tag using kustomize
+              cd "$TEMP_DIR"
+              kustomize edit set image $(image)="$(IMAGE_SBX_TAG)"
+              
+              # Apply rollout manifests
+              kustomize build . | kubectl apply -n $(sandbox_namespace) -f -
+              
+              # Wait for rollout to complete (Argo Rollouts)
+              if kubectl get crd rollouts.argoproj.io >/dev/null 2>&1; then
+                echo "Waiting for Argo Rollout to complete..."
+                kubectl argo rollouts status $(deployment_name) -n $(sandbox_namespace) --timeout=600s
+              else
+                echo "Fallback: waiting for deployment..."
+                kubectl rollout status deployment/$(deployment_name) -n $(sandbox_namespace) --timeout=600s
+              fi
+
+# -------------------------
+# STAGE 3 - DEPLOY PRODUCTION
+# -------------------------
+- stage: Deploy_Production
+  displayName: 'Deploy Production'
+  dependsOn: Build
+  condition: succeeded()
+  variables:
+    IMAGE_PROD_TAG: $[ stageDependencies.Build.BuildProduction.outputs['buildProdImage.IMAGE_PROD_TAG'] ]
+  jobs:
+    - job: WaitForApproval
+      displayName: 'Aguardar Aprovação para Produção'
+      pool: server
+      steps:
+        - task: ManualValidation@0
+          inputs:
+            notifyUsers: ''
+            instructions: 'Deploy para Produção: Sandbox testado e aprovado? Clique em RESUME para continuar.'
+            onTimeout: 'reject'
+
+    - job: UpdateAndDeployProduction
+      displayName: 'Update Rollout and Deploy to Production'
+      dependsOn: WaitForApproval
+      steps:
+        - checkout: self
+
+        - task: AWSShellScript@1
+          displayName: 'Deploy PROD Image to Production'
+          inputs:
+            awsCredentials: 'AWS.EKS'
+            regionName: 'sa-east-1'
+            scriptType: 'inline'
+            inlineScript: |
+              set -e
+              
+              echo "=========================================="
+              echo "Deploying Production Environment"
+              echo "=========================================="
+              echo "Using image: $(IMAGE_PROD_TAG)"
+
+              aws eks update-kubeconfig --region sa-east-1 --name $(eks_cluster)
+
+              # Install kustomize if not available
+              if ! command -v kustomize >/dev/null 2>&1; then
+                echo "Installing kustomize..."
+                curl -sLo /tmp/kustomize.tar.gz "https://github.com/kubernetes-sigs/kustomize/releases/download/kustomize/v5.1.1/kustomize_v5.1.1_linux_amd64.tar.gz"
+                tar -xzf /tmp/kustomize.tar.gz -C /tmp
+                mv /tmp/kustomize /usr/local/bin/kustomize
+              fi
+
+              # Copy rollout files to temp and update image
+              TEMP_DIR="/tmp/rollout-production-$(Build.BuildId)"
+              rm -rf "$TEMP_DIR"
+              mkdir -p "$TEMP_DIR"
+              cp -r pipeline/rollouts/devops/* "$TEMP_DIR/"
+              
+              # Update image tag using kustomize
+              cd "$TEMP_DIR"
+              kustomize edit set image $(image)="$(IMAGE_PROD_TAG)"
+              
+              # Apply rollout manifests
+              kustomize build . | kubectl apply -n $(production_namespace) -f -
+              
+              # Wait for rollout to complete (Argo Rollouts with longer timeout for canary)
+              if kubectl get crd rollouts.argoproj.io >/dev/null 2>&1; then
+                echo "Waiting for Argo Rollout canary to complete..."
+                kubectl argo rollouts status $(deployment_name) -n $(production_namespace) --timeout=600s
+              else
+                echo "Fallback: waiting for deployment..."
+                kubectl rollout status deployment/$(deployment_name) -n $(production_namespace)
+              fi
+
+# -------------------------
+# STAGE 4 - ROLLBACK SANDBOX (Manual Only)
+# -------------------------
+- stage: Rollback_Sandbox
+  displayName: 'ROLLBACK: Sandbox'
+  dependsOn: []
+  condition: eq(variables['MANUAL_ROLLBACK_SANDBOX'], 'true')
+  jobs:
+    - job: WaitForRollback_SBX
+      displayName: 'Aprovar Execução do Rollback'
+      pool: server
+      steps:
+        - task: ManualValidation@0
+          inputs:
+            notifyUsers: ''
+            instructions: 'Rollback Sandbox: Isso reverterá o rollout para a versão anterior. Clique em RESUME para confirmar.'
+            onTimeout: 'resume'
+
+    - job: RollbackSandbox
+      displayName: 'Rollback Argo Rollout'
+      dependsOn: WaitForRollback_SBX
+      steps:
+        - checkout: self
+
+        - task: AWSShellScript@1
+          displayName: 'Rollback Sandbox Rollout'
+          inputs:
+            awsCredentials: 'AWS.EKS'
+            regionName: 'sa-east-1'
+            scriptType: 'inline'
+            inlineScript: |
+              set -e
+              
+              aws eks update-kubeconfig --region sa-east-1 --name $(eks_cluster)
+              
+              echo "Executando rollback do rollout no sandbox..."
+              
+              if kubectl get crd rollouts.argoproj.io >/dev/null 2>&1; then
+                echo "Fazendo rollback do Argo Rollout..."
+                kubectl argo rollouts undo $(deployment_name) -n $(sandbox_namespace)
+                kubectl argo rollouts status $(deployment_name) -n $(sandbox_namespace) --timeout=300s
+                echo "Rollback do sandbox concluído com sucesso!"
+              else
+                echo "Fallback: rollback de deployment tradicional..."
+                kubectl rollout undo deployment/$(deployment_name) -n $(sandbox_namespace)
+                kubectl rollout status deployment/$(deployment_name) -n $(sandbox_namespace)
+                echo "Rollback do sandbox concluído!"
+              fi
+
+# -------------------------
+# STAGE 5 - ROLLBACK PRODUCTION (Manual Only)
+# -------------------------
+- stage: Rollback_Production
+  displayName: 'ROLLBACK: Production'
+  dependsOn: []
+  condition: eq(variables['MANUAL_ROLLBACK_PRODUCTION'], 'true')
+  jobs:
+    - job: WaitForRollback_PROD
+      displayName: 'Aprovar Execução do Rollback'
+      pool: server
+      steps:
+        - task: ManualValidation@0
+          inputs:
+            notifyUsers: ''
+            instructions: 'PERIGO PROD: Isso reverterá o rollout de produção para a versão anterior. Aprove apenas em emergência.'
+            onTimeout: 'resume'
+
+    - job: RollbackProduction
+      displayName: 'Rollback Argo Rollout - PROD'
+      dependsOn: WaitForRollback_PROD
+      steps:
+        - checkout: self
+
+        - task: AWSShellScript@1
+          displayName: 'Rollback Production Rollout'
+          inputs:
+            awsCredentials: 'AWS.EKS'
+            regionName: 'sa-east-1'
+            scriptType: 'inline'
+            inlineScript: |
+              set -e
+              
+              aws eks update-kubeconfig --region sa-east-1 --name $(eks_cluster)
+              
+              echo "Executando rollback do rollout em produção..."
+              
+              if kubectl get crd rollouts.argoproj.io >/dev/null 2>&1; then
+                echo "Fazendo rollback do Argo Rollout em PRODUÇÃO..."
+                kubectl argo rollouts undo $(deployment_name) -n $(production_namespace)
+                kubectl argo rollouts status $(deployment_name) -n $(production_namespace) --timeout=600s
+                echo "Rollback da produção concluído com sucesso!"
+              else
+                echo "Fallback: rollback de deployment tradicional..."
+                kubectl rollout undo deployment/$(deployment_name) -n $(production_namespace)
+                kubectl rollout status deployment/$(deployment_name) -n $(production_namespace)
+                echo "Rollback da produção concluído!"
+              fi

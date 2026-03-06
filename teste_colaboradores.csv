@@ -1,0 +1,11 @@
+nome,cpf,cargo,filial,setor,data_admissao,status,risco
+Lucas Araújo,111.222.333-44,Desenvolvedor,Porto Alegre,TI,2022-08-15,Ativo,Normal
+Débora Fonseca,222.333.444-55,Analista Financeiro,Salvador,Financeiro,2021-04-20,Ativo,Alerta
+Rodrigo Pinto,333.444.555-66,Gerente Projetos,Brasília,Projetos,2019-11-10,Ativo,Crítico
+Vanessa Lopes,444.555.666-77,Coordenadora RH,Recife,RH,2020-02-28,Ativo,Normal
+Aline Correia,555.666.777-88,Especialista QA,Manaus,TI,2023-01-05,Ativo,Normal
+Bruno Dias,666.777.888-99,Supervisor Vendas,Goiânia,Comercial,2018-09-12,Ativo,Crítico
+Patrícia Melo,777.888.999-00,Analista Dados,Vitória,TI,2021-07-18,Férias,Normal
+Thiago Barbosa,888.999.000-11,Técnico Suporte,Florianópolis,TI,2022-03-22,Ativo,Alerta
+Renata Castro,999.000.111-22,Consultora Legal,Campinas,Jurídico,2020-10-30,Ativo,Normal
+Eduardo Vieira,000.111.222-33,Diretor Operações,São Paulo,Operações,2017-05-15,Ativo,Crítico

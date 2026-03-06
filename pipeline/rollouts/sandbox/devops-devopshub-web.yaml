@@ -1,0 +1,127 @@
+kind: Rollout
+apiVersion: argoproj.io/v1alpha1
+metadata:
+  name: "devops-devopshub-web"
+  namespace: "devops-sbx"
+  labels:
+    environment: "sandbox"
+spec:
+  replicas: 1 # No mínimo 1 réplica para sandbox
+  strategy:
+    canary:
+      maxSurge: 0 # Impede que durante o update, exista mais pods do que a quant. de replicas
+      maxUnavailable: 1 # Encerra apenas 1 pod por vez
+  selector:
+    matchLabels:
+      app: "devops-devopshub-web" # Siga o padrão [group-applicationName]
+  template:
+    metadata:
+      labels:
+        app: "devops-devopshub-web" # Siga o padrão [group-applicationName]
+        app-type: web # api, service ou web
+        app-group: "DevOps"
+        environment: "sandbox"
+    spec:
+      nodeSelector: {"sandbox": 'yes'} # Defina em qual nó o pod irá ser agendado. Possíveis valores: stage:yes, preproduction:yes, sandbox:yes, production:yes
+      tolerations: [{"key": "environment", "operator": "Equal", 
+      "value": "sandbox", "effect": "NoSchedule"}, {"key": "architecture", "operator": "Equal", 
+      "value": "arm64", "effect": "NoSchedule"}]
+      affinity:
+        podAntiAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+          - weight: 100
+            podAffinityTerm:
+              labelSelector:
+                matchExpressions: [{"key": "app", "operator": "In", "values":["devops-devopshub-web"]}]
+              topologyKey: kubernetes.io/hostname
+        nodeAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+          - preference:
+              matchExpressions:
+                - key: karpenter.sh/capacity-type
+                  operator: In
+                  values:
+                    - spot
+            weight: 1
+          - preference:
+              matchExpressions:
+                - key: karpenter.sh/capacity-type
+                  operator: In
+                  values:
+                    - on-demand
+            weight: 2
+      # TopologySpread controla como pods são espalhados no pelo cluster.
+      topologySpreadConstraints:
+      - maxSkew: 1
+        topologyKey: kubernetes.io/hostname # balanceia os pods entre os nós
+        whenUnsatisfiable: ScheduleAnyway
+        labelSelector:
+          matchLabels:
+            app: "devops-devopshub-web" # Siga o padrão [group-applicationName]
+      - maxSkew: 1
+        topologyKey: topology.kubernetes.io/zone # balanceia os pods entre as zonas
+        whenUnsatisfiable: ScheduleAnyway
+        labelSelector:
+          matchLabels:
+            app: "devops-devopshub-web" # Siga o padrão [group-applicationName]
+
+      volumes:
+        - name: "logs"
+          emptyDir: {}
+        - name: "streamlit-cache"
+          emptyDir: {}
+      containers:
+        - name: "devops-devopshub-web" # Mantenha o mesmo nome do deployment
+          image: 676949161726.dkr.ecr.sa-east-1.amazonaws.com/devops-devopshub-web:${IMAGE_TAG} # [link do repositorio ecr]:[tag da imagem]
+          imagePullPolicy: IfNotPresent
+          ports:
+            - name: http
+              containerPort: 8501
+              protocol: TCP
+          # Valores padrões para novas aplicações. Serão ajustadas conforme a demanda.
+          resources:
+            limits:
+              memory: "512Mi"
+            requests:
+              cpu: "100m"
+              memory: "256Mi"
+          # Health checks
+          livenessProbe:
+            httpGet:
+              path: /healthz
+              port: http
+            initialDelaySeconds: 30
+            periodSeconds: 10
+            timeoutSeconds: 5
+            successThreshold: 1
+            failureThreshold: 3
+          readinessProbe:
+            httpGet:
+              path: /healthz
+              port: http
+            initialDelaySeconds: 5
+            periodSeconds: 5
+            timeoutSeconds: 3
+            successThreshold: 1
+            failureThreshold: 3
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            runAsNonRoot: true
+            runAsUser: 1000
+            capabilities:
+              drop:
+              - ALL
+          # Aponte para os volumes referenciados anteriormente
+          volumeMounts:
+            - name: logs
+              mountPath: /var/log/app
+            - name: streamlit-cache
+              mountPath: /home/appuser/.streamlit
+          env:
+            - name: ENVIRONMENT
+              value: sandbox
+            - name: STREAMLIT_SERVER_PORT
+              value: "8501"
+            - name: STREAMLIT_SERVER_ADDRESS
+              value: "0.0.0.0"

@@ -1,0 +1,9 @@
+nome,filial,periodo_aquisitivo,dias_devidos,vencimento,em_dobro,passivo,status
+Ana Lima,São Paulo,2022/2023,30,2023-11-01,Sim,R$ 8500,Em Dobro
+Carlos Souza,Rio de Janeiro,2023/2024,25,2024-07-15,Não,R$ 5200,Vencida
+Fernanda Costa,Curitiba,2023/2024,30,2024-01-20,Não,R$ 4800,Programada
+João Silva,São Paulo,2022/2023,20,2023-05-10,Sim,R$ 12000,Em Dobro
+Pedro Alves,Fortaleza,2023/2024,30,2024-09-25,Não,R$ 6500,Vencida
+Juliana Ferreira,São Paulo,2024/2025,15,2025-02-14,Não,R$ 3200,Normal
+Roberto Nunes,Rio de Janeiro,2023/2024,30,2024-12-08,Não,R$ 7800,Vencida
+Tatiane Oliveira,São Paulo,2024/2025,10,2025-06-20,Não,R$ 2100,Normal

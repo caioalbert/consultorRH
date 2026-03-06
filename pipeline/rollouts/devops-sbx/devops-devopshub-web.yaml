@@ -1,0 +1,41 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Rollout
+metadata:
+  name: devops-devopshub-web
+  namespace: devops-sbx
+spec:
+  replicas: 1
+  strategy:
+    canary:
+      steps:
+        - setWeight: 100
+  selector:
+    matchLabels:
+      app: devops-devopshub-web
+  template:
+    metadata:
+      labels:
+        app: devops-devopshub-web
+    spec:
+      tolerations:
+        - key: environment
+          operator: Equal
+          value: sandbox
+          effect: NoSchedule
+      nodeSelector:
+        environment: sandbox
+      containers:
+        - name: devops-devopshub-web
+          image: devops-devopshub-web:latest
+          ports:
+            - containerPort: 8501
+          env:
+            - name: ENVIRONMENT
+              value: "sandbox"
+          resources:
+            requests:
+              memory: "128Mi"
+              cpu: "100m"
+            limits:
+              memory: "256Mi"
+              cpu: "200m"

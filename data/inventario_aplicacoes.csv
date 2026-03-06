@@ -1,0 +1,52 @@
+Nome_Aplicacao,Produto,Ambiente,Tipo_Aplicacao,Framework,Ferramenta_Versionamento,Tipo_Pipeline,Versao,Hospedagem,SBOM,Scan_Imagens,Secret_Manager,SAST_SonarCube,Data_Ultima_Revisao,Data_Criacao
+PreparePixIn,TOPUP,Produção,Worker,NET 6,Azure Repos,YAML,2.1,EKS,Sim,Sim,Sim,Não,2025-11-27,2024-01-15
+TopUpPreAuthorization,TOPUP,Produção,Worker,NET 6,Azure Repos,Classic,1.0.0,EKS,Sim,Sim,Sim,Sim,2025-12-04,2023-06-10
+CancelTopUpWorker,TOPUP,Produção,Worker,NET 6,Azure Repos,Classic,1.0.4.0,EKS,Sim,Sim,Sim,Sim,2025-12-04,2023-08-22
+ConsultExternalTokenWorker,TOPUP,Produção,Worker,NET 6,Azure Repos,Classic,1.0.1,EC2,Sim,Não,Sim,Não,2025-12-03,2023-09-05
+SettleTopUpFeeWorker,TOPUP,Produção,Worker,NET 6,Azure Repos,Classic,1.0.4,EC2,Sim,Sim,Sim,Sim,2025-12-03,2023-07-18
+GetTopUpProducts,TOPUP,Produção,API,NET 6,Azure Repos,Classic,1.0.1,EC2,Sim,Sim,Sim,Não,2025-12-03,2023-05-12
+CheckConfirmationTopUpV2Worker,TOPUP,Produção,Worker,NET 6,Azure Repos,Classic,1.0.1,EKS,Sim,Sim,Sim,Sim,2025-12-03,2024-02-20
+GenerateTopUp,TOPUP,Produção,API,NET 6,Azure Repos,YAML,1.2.0,EKS,Sim,Sim,Sim,Sim,2025-12-03,2023-04-08
+UpdateTopUpProducts,TOPUP,Produção,Worker,NET 6,Azure Repos,Classic,1.0.0,EC2,Não,Não,Sim,Não,2025-12-03,2023-10-30
+topupauthorizationv2,TOPUP,Produção,Worker,NET 6,Azure Repos,YAML,2.0.0,EKS,Sim,Sim,Sim,Sim,2025-12-03,2024-03-15
+CheckConfirmationTopUpWorker,TOPUP,Produção,Worker,NET 6,Azure Repos,YAML,1.0.4.0,EC2,Sim,Sim,Sim,Não,2025-12-03,2023-06-25
+AuthorizationTopUpWorker,TOPUP,Produção,Worker,NET 6,Azure Repos,YAML,1.5.2,EKS,Sim,Sim,Sim,Sim,2025-12-03,2023-11-08
+ConfirmTopUp,TOPUP,Produção,Worker,NET 6,Azure Repos,YAML,1.3.0,EKS,Sim,Sim,Sim,Sim,2025-12-03,2023-12-01
+ProcessTopUpWorker,TOPUP,Produção,Worker,NET 6,Azure Repos,YAML,2.1.0,EKS,Sim,Sim,Sim,Sim,2025-12-03,2024-01-20
+GetTopUpById,TOPUP,Produção,API,NET 6,Azure Repos,YAML,1.0.1.0,EC2,Sim,Não,Sim,Não,2025-12-03,2023-07-05
+ConsultExternalTokenWorkerV2,TOPUP,Produção,Worker,NET 6,Azure Repos,YAML,1.0,EC2,Sim,Sim,Sim,Não,2025-12-03,2024-04-12
+SettleTopUpFeeV2Worker,SPB,Produção,Worker,NET 6,Azure Repos,YAML,1.0,EC2,Sim,Sim,Sim,Sim,2025-12-03,2024-05-08
+GetTopUpProductsByPhone,SPB,Produção,API,NET 6,Azure Repos,YAML,1.0,EC2,Sim,Sim,Sim,Não,2025-12-03,2023-08-15
+SendXMLMessage,SPB,Sandbox,Worker,NET 6,Azure Repos,YAML,1.0.0,EKS,Não,Não,Sim,Não,2025-12-02,2023-09-20
+ReceiveMessageWorker,SPB,Sandbox,Worker,NET 6,Azure Repos,Classic,1.0,EC2,Não,Não,Sim,Não,2025-12-03,2023-10-05
+app-qaops-rutas-prod,Rutas,Produção,Worker,NET 6,Azure Repos,Classic,1.0,Cloud Run,Não,Não,Sim,Não,2025-12-03,2024-01-30
+app-rutas-prod,Rutas,Produção,Web Application,React,Azure Repos,Classic,1.0,Cloud Run,Não,Não,Sim,Não,2025-12-03,2024-02-15
+rutas-api-prod,Rutas,Produção,API,NET 6,Azure Repos,Classic,1.0,Cloud Run,Sim,Não,Sim,Não,2025-12-03,2024-03-01
+rutas-webhook-prod,Rutas,Produção,API,NET 6,Azure Repos,Classic,1.0,Cloud Run,Sim,Sim,Sim,Não,2025-12-03,2024-03-20
+rutas-worker-api-elasticlogger-prod,Rutas,Produção,Worker,NET 6,Azure Repos,Classic,1.0,Cloud Run,Não,Não,Sim,Não,2025-12-03,2024-04-01
+rutas-worker-api-mailnotification-prod,Rutas,Produção,Worker,NET 6,Azure Repos,Classic,1.0,Cloud Run,Sim,Sim,Sim,Não,2025-12-03,2024-04-15
+rutas-worker-api-smsnotification-prod,Rutas,Produção,Worker,NET 6,Azure Repos,Classic,1.0,Cloud Run,Sim,Sim,Sim,Não,2025-12-03,2024-05-01
+PreparePixIn,TOPUP,Sandbox,Worker,NET 6,Azure Repos,YAML,2.1,EKS,Sim,Sim,Sim,Não,2025-11-27,2024-01-15
+TopUpPreAuthorization,TOPUP,Sandbox,Worker,NET 6,Azure Repos,Classic,1.0.0,EKS,Sim,Sim,Sim,Sim,2025-12-04,2023-06-10
+CancelTopUpWorker,TOPUP,N/A,Worker,NET 6,Azure Repos,Classic,1.0.4.0,EKS,Sim,Sim,Sim,Sim,2025-12-04,2023-08-22
+ConsultExternalTokenWorker,TOPUP,N/A,Worker,NET 6,Azure Repos,Classic,1.0.1,EC2,Sim,Não,Sim,Não,2025-12-03,2023-09-05
+SettleTopUpFeeWorker,TOPUP,Produção,Worker,NET 6,Azure Repos,Classic,1.0.4,EC2,Sim,Sim,Sim,Sim,2025-12-03,2023-07-18
+GetTopUpProducts,TOPUP,Sandbox,API,NET 6,Azure Repos,Classic,1.0.1,EC2,Sim,Sim,Sim,Não,2025-12-03,2023-05-12
+CheckConfirmationTopUpV2Worker,TOPUP,N/A,Worker,NET 6,Azure Repos,Classic,1.0.1,EKS,Sim,Sim,Sim,Sim,2025-12-03,2024-02-20
+GenerateTopUp,TOPUP,N/A,API,NET 6,Azure Repos,YAML,1.2.0,EKS,Sim,Sim,Sim,Sim,2025-12-03,2023-04-08
+UpdateTopUpProducts,TOPUP,Sandbox,Worker,NET 6,Azure Repos,Classic,1.0.0,EC2,Não,Não,Sim,Não,2025-12-03,2023-10-30
+topupauthorizationv2,TOPUP,Produção,Worker,NET 6,Azure Repos,YAML,2.0.0,EKS,Sim,Sim,Sim,Sim,2025-12-03,2024-03-15
+CheckConfirmationTopUpWorker,TOPUP,N/A,Worker,NET 6,Azure Repos,YAML,1.0.4.0,EC2,Sim,Sim,Sim,Não,2025-12-03,2023-06-25
+AuthorizationTopUpWorker,TOPUP,N/A,Worker,NET 6,Azure Repos,YAML,1.5.2,EKS,Sim,Sim,Sim,Sim,2025-12-03,2023-11-08
+ConfirmTopUp,TOPUP,Sandbox,Worker,NET 6,Azure Repos,YAML,1.3.0,EKS,Sim,Sim,Sim,Sim,2025-12-03,2023-12-01
+ProcessTopUpWorker,TOPUP,N/A,Worker,NET 6,Azure Repos,YAML,2.1.0,EKS,Sim,Sim,Sim,Sim,2025-12-03,2024-01-20
+GetTopUpById,TOPUP,N/A,API,NET 6,Azure Repos,YAML,1.0.1.0,EC2,Sim,Não,Sim,Não,2025-12-03,2023-07-05
+ConsultExternalTokenWorkerV2,TOPUP,Sandbox,Worker,NET 6,Azure Repos,YAML,1.0,EC2,Sim,Sim,Sim,Não,2025-12-03,2024-04-12
+SettleTopUpFeeV2Worker,SPB,N/A,Worker,NET 6,Azure Repos,YAML,1.0,EC2,Sim,Sim,Sim,Sim,2025-12-03,2024-05-08
+GetTopUpProductsByPhone,SPB,N/A,API,NET 6,Azure Repos,YAML,1.0,EC2,Sim,Sim,Sim,Não,2025-12-03,2023-08-15
+SendXMLMessage,SPB,Sandbox,Worker,NET 6,Azure Repos,YAML,1.0.0,EKS,Não,Não,Sim,Não,2025-12-02,2023-09-20
+ReceiveMessageWorker,SPB,Sandbox,Worker,NET 6,Azure Repos,Classic,1.0,EC2,Não,Não,Sim,Não,2025-12-03,2023-10-05
+app-qaops-rutas-prod,Rutas,Sandbox,Worker,NET 6,Azure Repos,Classic,1.0,Cloud Run,Não,Não,Sim,Não,2025-12-03,2024-01-30
+app-rutas-prod,Rutas,Sandbox,Web Application,React,Azure Repos,Classic,1.0,Cloud Run,Não,Não,Sim,Não,2025-12-03,2024-02-15
+rutas-api-prod,Rutas,Sandbox,API,NET 6,Azure Repos,Classic,1.0,Cloud Run,Sim,Não,Sim,Não,2025-12-03,2024-03-01
+rutas-webhook-prod,Rutas,Sandbox,API,NET 6,Azure Repos,Classic,1.0,Cloud Run,Sim,Sim,Sim,Não,2025-12-03,2024-03-20

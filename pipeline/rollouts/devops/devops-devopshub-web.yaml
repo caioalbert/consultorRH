@@ -1,0 +1,45 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Rollout
+metadata:
+  name: devops-devopshub-web
+  namespace: devops
+spec:
+  replicas: 1
+  strategy:
+    canary:
+      steps:
+        - setWeight: 20
+        - pause: {duration: 30s}
+        - setWeight: 60
+        - pause: {duration: 30s}
+        - setWeight: 100
+  selector:
+    matchLabels:
+      app: devops-devopshub-web
+  template:
+    metadata:
+      labels:
+        app: devops-devopshub-web
+    spec:
+      tolerations:
+        - key: environment
+          operator: Equal
+          value: production
+          effect: NoSchedule
+      nodeSelector:
+        environment: production
+      containers:
+        - name: devops-devopshub-web
+          image: devops-devopshub-web:latest
+          ports:
+            - containerPort: 8501
+          env:
+            - name: ENVIRONMENT
+              value: "production"
+          resources:
+            requests:
+              memory: "256Mi"
+              cpu: "200m"
+            limits:
+              memory: "512Mi"
+              cpu: "400m"

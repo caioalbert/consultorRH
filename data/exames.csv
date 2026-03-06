@@ -1,0 +1,11 @@
+nome,filial,tipo_exame,ultimo_exame,vencimento,dias_atraso,passivo,status
+Ana Lima,São Paulo,Periódico,2022-01-10,2023-01-10,420,R$ 1500,Crítico
+Carlos Souza,Rio de Janeiro,Periódico,2023-07-22,2024-07-22,45,R$ 500,Atrasado
+Fernanda Costa,Curitiba,Admissional,2021-01-10,2022-01-10,0,R$ 0,Em Dia
+João Silva,São Paulo,Periódico,2022-05-18,2023-05-18,320,R$ 1200,Crítico
+Mariana Santos,Belo Horizonte,Periódico,2023-11-03,2024-11-03,0,R$ 0,Em Dia
+Pedro Alves,Fortaleza,Periódico,2021-09-25,2022-09-25,520,R$ 2500,Crítico
+Juliana Ferreira,São Paulo,Admissional,2022-02-14,2023-02-14,0,R$ 0,Em Dia
+Roberto Nunes,Rio de Janeiro,Periódico,2023-12-08,2024-12-08,0,R$ 0,Em Dia
+Tatiane Oliveira,São Paulo,Periódico,2023-06-20,2024-06-20,90,R$ 800,Atrasado
+Marcos Pereira,Curitiba,Periódico,2022-03-12,2023-03-12,365,R$ 1800,Crítico
